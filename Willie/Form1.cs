@@ -28,7 +28,7 @@ namespace Willie
             this.textBoxAddress.Text = config.address;
             this.textBoxPort.Text = config.port;
             this.textBoxforwardedPort.Text = config.fport;
-            //this.textBoxPrivateKey.Text = config.pk;
+            this.textBoxPrivateKey.Text = config.pk;
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -51,13 +51,29 @@ namespace Willie
 
         private void buttonConnect_Click(object sender, EventArgs e)
         {
-            if (requiresSaving)
-            {
-                config.Save();
-            }
+            if (requiresSaving) ConfigSave();
             OpenConnection();
         }
 
+        private void ConfigSave()
+        {
+
+            try
+            {
+                config.username = this.textBoxUsername.Text;
+                config.password = this.textBoxPassword.Text;
+                config.address = this.textBoxAddress.Text;
+                config.port = this.textBoxPort.Text;
+                config.fport= this.textBoxforwardedPort.Text;
+                config.pk = this.textBoxPrivateKey.Text;
+                config.Save();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error in saving. " + ex.Message + " " + ex.StackTrace);
+            }
+
+        }
         private void OpenConnection()
         {
             isConnected = ssh.Connect();
@@ -102,10 +118,23 @@ namespace Willie
             ssh.keyfile = textBoxPrivateKey.Text;
         }
 
-        private void textBox1_TextChanged(object sender, EventArgs e)
+        private void textBoxforwardedPort_TextChanged(object sender, EventArgs e)
         {
             requiresSaving = true;
-            ssh.forwardedPort = Convert.ToUInt32(textBoxforwardedPort.Text);           
+            if (String.IsNullOrEmpty(textBoxforwardedPort.Text))
+                ssh.forwardedPort = 0;
+            else
+                ssh.forwardedPort = Convert.ToUInt32(textBoxforwardedPort.Text);           
+        }
+
+        private void buttonBrowse_Click(object sender, EventArgs e)
+        {
+            DialogResult result = openFileDialog1.ShowDialog();
+            if (result == DialogResult.OK) // Test result.
+            {
+                this.textBoxPrivateKey.Text = openFileDialog1.FileName.ToString();
+            }
+
         }
     }
 }
