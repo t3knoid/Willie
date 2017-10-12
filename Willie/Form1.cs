@@ -14,6 +14,28 @@ namespace Willie
     {
         private bool isConnected = false;
         private bool requiresSaving = false;
+
+        // Using this property to control enabling and disabling the Connect button
+        // when we successfully make a connection.
+        public bool Connected
+        {
+            get {return isConnected;}
+            set
+            {
+                isConnected = value;
+                if (isConnected == true)
+                {
+                    this.buttonConnect.Enabled = false;
+                    this.textBoxStatus.Text = "Connected";
+                }
+                else
+                {
+                    this.buttonConnect.Enabled = true;
+                    this.textBoxStatus.Text = "Not Connected";
+                }
+                    
+            }
+        }
         Config config = new Config();
         SSH ssh = new SSH();
 
@@ -26,14 +48,14 @@ namespace Willie
             this.textBoxUsername.Text = config.username;
             this.textBoxPassword.Text = config.password;
             this.textBoxAddress.Text = config.address;
-            this.textBoxPort.Text = config.port;
-            this.textBoxforwardedPort.Text = config.fport;
-            this.textBoxPrivateKey.Text = config.pk;
+            this.textBoxPort.Text = config.port.ToString();
+            this.textBoxforwardedPort.Text = config.forwardedport.ToString();
+            this.textBoxPrivateKey.Text = config.privatekey;
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (isConnected)
+            if (Connected)
             {
                 var result = MessageBox.Show("Save changes before exiting?", "Save Changes", MessageBoxButtons.YesNoCancel);
                 switch (result)
@@ -51,6 +73,7 @@ namespace Willie
 
         private void buttonConnect_Click(object sender, EventArgs e)
         {
+            this.textBoxStatus.Text = "Connecting...";
             if (requiresSaving) ConfigSave();
             OpenConnection();
         }
@@ -63,9 +86,10 @@ namespace Willie
                 config.username = this.textBoxUsername.Text;
                 config.password = this.textBoxPassword.Text;
                 config.address = this.textBoxAddress.Text;
-                config.port = this.textBoxPort.Text;
-                config.fport= this.textBoxforwardedPort.Text;
-                config.pk = this.textBoxPrivateKey.Text;
+                config.port = Convert.ToInt32(this.textBoxPort.Text);
+                config.forwardedport= Convert.ToUInt32(this.textBoxforwardedPort.Text);
+                config.privatekey = this.textBoxPrivateKey.Text;
+                config.passphrase = this.textBoxPassphrase.Text;
                 config.Save();
             }
             catch (Exception ex)
@@ -74,18 +98,47 @@ namespace Willie
             }
 
         }
-        private void OpenConnection()
+        private bool OpenConnection()
         {
-            isConnected = ssh.Connect();
-            if (isConnected)
+            try
             {
-                MessageBox.Show("Connected successfully", "Connected", MessageBoxButtons.OK);
+                Connected = ssh.Connect();
+                //MessageBox.Show("Connected successfully", "Connected", MessageBoxButtons.OK);
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                return false;
+            }
+
+            return false;
         }
 
+        private void CloseConnection()
+        {
+            try
+            {
+                ssh.Disconnect();
+                //MessageBox.Show("Disconnected.");
+                Connected = false;
+                textBoxStatus.Text = "Not Connected";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+
+        }
         private void buttonCancel_Click(object sender, EventArgs e)
         {
-            Application.Exit();
+            if (Connected)
+            {
+                CloseConnection();
+            }
+            else
+            {
+                Application.Exit();
+            }
         }
 
         private void textBoxAddress_TextChanged(object sender, EventArgs e)
@@ -102,6 +155,18 @@ namespace Willie
 
         private void textBoxPassword_TextChanged(object sender, EventArgs e)
         {
+            if (!String.IsNullOrEmpty(textBoxPassword.Text))
+            {
+                buttonBrowse.Enabled = false;
+                textBoxPassphrase.Enabled = false;
+                textBoxPrivateKey.Enabled = false;
+            }
+            else
+            {
+                buttonBrowse.Enabled = true;
+                textBoxPassphrase.Enabled = true;
+                textBoxPrivateKey.Enabled = true;
+            }
             requiresSaving = true;
             ssh.password = textBoxPassword.Text;
         }
@@ -122,9 +187,15 @@ namespace Willie
         {
             requiresSaving = true;
             if (String.IsNullOrEmpty(textBoxforwardedPort.Text))
-                ssh.forwardedPort = 0;
+                ssh.forwardedPort = "0";
             else
-                ssh.forwardedPort = Convert.ToUInt32(textBoxforwardedPort.Text);           
+                ssh.forwardedPort = textBoxforwardedPort.Text;           
+        }
+
+        private void textBoxPassphrase_TextChanged(object sender, EventArgs e)
+        {
+            requiresSaving = true;
+            ssh.passphrase = textBoxPassphrase.Text;
         }
 
         private void buttonBrowse_Click(object sender, EventArgs e)
@@ -136,5 +207,11 @@ namespace Willie
             }
 
         }
+
+        private void textBoxStatus_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
     }
 }

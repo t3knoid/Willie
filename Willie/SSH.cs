@@ -12,9 +12,20 @@ namespace Willie
         public string username { get; set; }
         public string password { get; set; }
         public string address { get; set; }
-        public string port { get; set; }
+        private int _port;
+        public string port
+        {
+            get { return Convert.ToString(_port); }
+            set { _port = Convert.ToInt32 (value); }
+        }
         public string keyfile { get; set; }
-        public uint forwardedPort { get; set; }
+        public string passphrase { get; set; }
+        private uint _forwardedPort;
+        public string forwardedPort
+        { 
+            get {return Convert.ToString(_forwardedPort); }
+            set { _forwardedPort = Convert.ToUInt32(value); }
+        }
 
         ForwardedPortDynamic forwardedPortDynamic;
         SshClient sshClient;
@@ -24,33 +35,48 @@ namespace Willie
 
         }
 
-		public SSH(string user, string pw, string addy, string p, string key, uint fport)
-        {
-            username = user;
-            password = pw;
-            address = addy;
-            port = p;
-            keyfile = key;
-            forwardedPort = fport;
-        }
         public bool Connect()
         {
+            ConnectionInfo connectionInfo = null;
+
             try
             {
-                var connectionInfo = new ConnectionInfo(address, port,
-                                            new PasswordAuthenticationMethod(username, password),
-                                            new PrivateKeyAuthenticationMethod(keyfile));
+                // If password is empty, use private key authentication
+                if (String.IsNullOrEmpty(this.password)) {
+                    connectionInfo = new ConnectionInfo(this.address, this._port, this.username,
+                        new AuthenticationMethod[]{
+                            new PrivateKeyAuthenticationMethod(this.username, new PrivateKeyFile[] {
+                                new PrivateKeyFile(keyfile, passphrase)
+                            }),
+                        });
+                }
+
+                else
+                {
+                    connectionInfo = new ConnectionInfo(this.address, this._port, this.username,
+                        new AuthenticationMethod[]{
+                            new PasswordAuthenticationMethod(this.username,this.password),
+                        });
+
+                };
 
                 sshClient = new SshClient(connectionInfo);
                 sshClient.Connect();
-                forwardedPortDynamic = new ForwardedPortDynamic("127.0.0.1", forwardedPort);
+                forwardedPortDynamic = new ForwardedPortDynamic("127.0.0.1", this._forwardedPort);
                 sshClient.AddForwardedPort(forwardedPortDynamic);
                 forwardedPortDynamic.Start();    
             }
 			catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-                return false;
+                switch (ex.Message)
+                {
+                    case "Only one usage of each socket address (protocol/network address/port) is normally permitted" :
+                        throw new Exception("Socks Port " + forwardedPort + " is in use. Specify a different port.");
+                    case "Permission denied (password)." :
+                        throw new Exception("Permission denied. Invalid password specified.");
+                    default:
+                        throw new Exception(ex.Message);
+                }               
             }
 
             if (sshClient.IsConnected && forwardedPortDynamic.IsStarted)
@@ -61,7 +87,16 @@ namespace Willie
 
         public bool Disconnect()
         {
-            return true;
+            try
+            {
+                sshClient.Disconnect();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
         }
     }
 
