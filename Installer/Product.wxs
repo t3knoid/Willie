@@ -1,32 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?define thisProductVersion = "0.0.1"?>
+<?define thisProductCode = "64BABC79-8305-43DF-BFDE-6C0DBD7908E4"?>
+<?define thisProductUpgradeCode = "e591f523-b762-4b4d-99bb-749a79bdc971"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product Id="*" Name="Installer" Language="1033" Version="1.0.0.0" Manufacturer="company" UpgradeCode="e591f523-b762-4b4d-99bb-749a79bdc971">
+	<Product Id="$(var.thisProductCode)" Name="Willie" Language="1033" Version="$(var.thisProductVersion)" Manufacturer="Frank Refol" UpgradeCode="$(var.thisProductUpgradeCode)">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
-
-		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
-		<MediaTemplate />
-
-		<Feature Id="ProductFeature" Title="Installer" Level="1">
+    <MediaTemplate EmbedCab="yes"/>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFilesFolder">     
+				<Directory Id="INSTALLFOLDER" Name="Willie" />
+			</Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="WillieStartMenuDir" Name="Willie" />
+      </Directory>
+		</Directory>
+   
+    <Icon Id="ProductIcon" SourceFile="$(var.Willie.ProjectDir)shovel.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon"/>
+    <Property Id="ARPHELPLINK" Value="https://github.com/t3knoid/Willie/wiki"/>
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/t3knoid/Willie/wiki/About-Willie"/>
+    <Property Id="ARPNOREPAIR" Value="1"/>
+    <Property Id="ARPNOMODIFY" Value="1"/>
+    <Upgrade Id="$(var.thisProductUpgradeCode)">
+      <UpgradeVersion Minimum="$(var.thisProductVersion)" OnlyDetect="yes" Property="NEWERVERSIONDETECTED"/>
+      <UpgradeVersion Minimum="0.0.0" Maximum="$(var.thisProductVersion)" IncludeMinimum="yes" IncludeMaximum="no" 
+                      Property="OLDERVERSIONBEINGUPGRADED"/>	  
+    </Upgrade>
+    <Condition Message="A newer version of this software is already installed.">NOT NEWERVERSIONDETECTED</Condition>
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="Willie.exe" Guid="1874830F-523F-46EA-9AA1-9B747F152197">
+        <File Id="Willie.exe" Source="$(var.Willie.TargetDir)Willie.exe" KeyPath="yes"/>
+      </Component>
+      <Component Id="Willie.pdb" Guid="E51BB9F4-1B9E-4B16-92EC-29ADF8281258">
+        <File Id="Willie.pdb" Source="$(var.Willie.TargetDir)Willie.pdb" KeyPath="yes"/>
+      </Component>
+      <Component Id="Willie.exe.Config" Guid="0E3A2A91-66D6-4FCB-A333-CB6DFA9F54B7">
+        <File Id="Willie.exe.Config" Source="$(var.Willie.TargetDir)Willie.exe.Config" KeyPath="yes"/>
+      </Component>
+      <Component Id="Renci.sshNet.dll" Guid="691DA0B1-1E2F-4190-A5B0-EA47AB56E884">
+        <File Id="Renci.sshNet.dll" Source="$(var.Willie.TargetDir)Renci.sshNet.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Renci.sshNet.xml" Guid="F25E8A68-2186-48BD-8036-A59C532130FF">
+        <File Id="Renci.sshNet.xml" Source="$(var.Willie.TargetDir)Renci.sshNet.xml" KeyPath="yes"/>      
+      </Component>
+    </ComponentGroup>
+    <DirectoryRef Id="WillieStartMenuDir">
+      <Component Id="WillieStartMenuShortcut" Guid="02485235-3024-4F71-8D2C-F69DDC849BAB">
+        <Shortcut Id="Willie" Name="Willie" Description="Start tunneling with Willie" Target="[INSTALLFOLDER]Willie.exe"/>
+        <RemoveFolder Id="RemoveWillieStartMenuDir" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\Frank Refol\Willie" Name="installed" Type="integer" Value="1" KeyPath="yes" />      
+      </Component>
+    </DirectoryRef>
+		<Feature Id="MainProduct" Title="Main Product" Level="1">
 			<ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="WillieStartMenuShortcut"/>
 		</Feature>
 	</Product>
-
-	<Fragment>
-		<Directory Id="TARGETDIR" Name="SourceDir">
-			<Directory Id="ProgramFilesFolder">
-				<Directory Id="INSTALLFOLDER" Name="Installer" />
-			</Directory>
-		</Directory>
-	</Fragment>
-
-	<Fragment>
-		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-			<!-- TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. -->
-      <Component Id="ProductComponent">
-        <!-- TODO: Insert files, registry keys, and other resources here. -->
-        <File Source="$(var.Willie.TargetPath)" />
-      </Component>
-			<!-- </Component> -->
-		</ComponentGroup>
-	</Fragment>
 </Wix>
