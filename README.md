@@ -9,3 +9,4 @@ The following features are available in Willie:
 * Username/Password Authentication
 * Private RSA key file Authentication
 * User-defined SOCKS port
+* Installer
